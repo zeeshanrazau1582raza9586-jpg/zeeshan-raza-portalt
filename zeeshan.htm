@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Fire Simulation Map</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            font-family: 'Arial', sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #gameCanvas {
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: crosshair;
+            display: block;
+            margin: 0 auto;
+            background: #000;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-group {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 5px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 2px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"] {
+            width: 100px;
+            margin: 0 5px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px 15px;
+            margin: 5px;
+            text-align: center;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 10px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .instructions {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .wind-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🔥 Advanced Fire Simulation Map</h1>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Wind Direction:</label>
+                <button onclick="setWindDirection('N')">⬆️ N</button>
+                <button onclick="setWindDirection('NE')">↗️ NE</button>
+                <button onclick="setWindDirection('E')">➡️ E</button>
+                <button onclick="setWindDirection('SE')">↘️ SE</button>
+                <button onclick="setWindDirection('S')">⬇️ S</button>
+                <button onclick="setWindDirection('SW')">↙️ SW</button>
+                <button onclick="setWindDirection('W')">⬅️ W</button>
+                <button onclick="setWindDirection('NW')">↖️ NW</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Wind Speed:</label>
+                <input type="range" id="windSpeed" min="0" max="10" value="3" onchange="updateWindSpeed()">
+                <span id="windSpeedValue">3</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Actions:</label>
+                <button onclick="startRandomFire()">🔥 Random Fire</button>
+                <button onclick="toggleFirefighting()">🚒 Firefighting</button>
+                <button onclick="resetSimulation()">🔄 Reset</button>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div>Burnt Area</div>
+                <div id="burntArea">0%</div>
+            </div>
+            <div class="stat-item">
+                <div>Active Fires</div>
+                <div id="activeFires">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Fire Speed</div>
+                <div id="fireSpeed">Low</div>
+            </div>
+            <div class="stat-item">
+                <div>Damage Level</div>
+                <div id="damageLevel">None</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8B4513;"></div>
+                <span>Soil</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #90EE90;"></div>
+                <span>Grass</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #228B22;"></div>
+                <span>Forest</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4169E1;"></div>
+                <span>Water</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #696969;"></div>
+                <span>Urban</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF4500;"></div>
+                <span>Low Fire</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF0000;"></div>
+                <span>Medium Fire</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8B0000;"></div>
+                <span>High Fire</span>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <p><strong>Controls:</strong> Click to start fire | Use wind controls to change direction | Toggle firefighting mode to extinguish fires</p>
+        </div>
+    </div>
+
+    <div class="wind-indicator" id="windIndicator">➡️</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const GRID_WIDTH = 80;
+        const GRID_HEIGHT = 60;
+        const CELL_SIZE = 10;
+        
+        // Terrain types
+        const SOIL = 0;
+        const GRASS = 1;
+        const FOREST = 2;
+        const WATER = 3;
+        const URBAN = 4;
+        
+        // Fire intensity levels
+        const NO_FIRE = 0;
+        const LOW_FIRE = 1;
+        const MEDIUM_FIRE = 2;
+        const HIGH_FIRE = 3;
+        const BURNT = 4;
+        
+        // Game state
+        let grid = [];
+        let fireGrid = [];
+        let windDirection = 'E';
+        let windSpeed = 3;
+        let firefightingMode = false;
+        let totalCells = 0;
+        let burntCells = 0;
+        
+        // Wind direction vectors
+        const windVectors = {
+            'N': {x: 0, y: -1},
+            'NE': {x: 1, y: -1},
+            'E': {x: 1, y: 0},
+            'SE': {x: 1, y: 1},
+            'S': {x: 0, y: 1},
+            'SW': {x: -1, y: 1},
+            'W': {x: -1, y: 0},
+            'NW': {x: -1, y: -1}
+        };
+        
+        // Wind direction symbols
+        const windSymbols = {
+            'N': '⬆️',
+            'NE': '↗️',
+            'E': '➡️',
+            'SE': '↘️',
+            'S': '⬇️',
+            'SW': '↙️',
+            'W': '⬅️',
+            'NW': '↖️'
+        };
+        
+        // Terrain colors
+        const terrainColors = {
+            [SOIL]: '#8B4513',
+            [GRASS]: '#90EE90',
+            [FOREST]: '#228B22',
+            [WATER]: '#4169E1',
+            [URBAN]: '#696969'
+        };
+        
+        // Fire colors
+        const fireColors = {
+            [NO_FIRE]: 'transparent',
+            [LOW_FIRE]: '#FF4500',
+            [MEDIUM_FIRE]: '#FF0000',
+            [HIGH_FIRE]: '#8B0000',
+            [BURNT]: '#2F2F2F'
+        };
+        
+        // Initialize simulation
+        function initSimulation() {
+            grid = [];
+            fireGrid = [];
+            totalCells = 0;
+            burntCells = 0;
+            
+            // Generate terrain
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                grid[y] = [];
+                fireGrid[y] = [];
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    // Generate realistic terrain distribution
+                    const rand = Math.random();
+                    let terrain;
+                    
+                    if (rand < 0.1) terrain = WATER;
+                    else if (rand < 0.3) terrain = SOIL;
+                    else if (rand < 0.6) terrain = GRASS;
+                    else if (rand < 0.85) terrain = FOREST;
+                    else terrain = URBAN;
+                    
+                    grid[y][x] = terrain;
+                    fireGrid[y][x] = NO_FIRE;
+                    
+                    if (terrain !== WATER) {
+                        totalCells++;
+                    }
+                }
+            }
+            
+            // Add some water bodies
+            addWaterBodies();
+            
+            updateStats();
+        }
+        
+        // Add water bodies (rivers/lakes)
+        function addWaterBodies() {
+            // Add a river
+            const riverY = Math.floor(GRID_HEIGHT / 2);
+            for (let x = 10; x < GRID_WIDTH - 10; x++) {
+                grid[riverY][x] = WATER;
+                fireGrid[riverY][x] = NO_FIRE;
+            }
+            
+            // Add a lake
+            const lakeX = Math.floor(GRID_WIDTH * 0.7);
+            const lakeY = Math.floor(GRID_HEIGHT * 0.3);
+            for (let y = lakeY - 5; y <= lakeY + 5; y++) {
+                for (let x = lakeX - 5; x <= lakeX + 5; x++) {
+                    if (y >= 0 && y < GRID_HEIGHT && x >= 0 && x < GRID_WIDTH) {
+                        if (Math.sqrt((x - lakeX)**2 + (y - lakeY)**2) <= 5) {
+                            grid[y][x] = WATER;
+                            fireGrid[y][x] = NO_FIRE;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Draw grid
+        function drawGrid() {
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    const terrain = grid[y][x];
+                    const fire = fireGrid[y][x];
+                    
+                    // Draw terrain
+                    ctx.fillStyle = terrainColors[terrain];
+                    ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    
+                    // Draw fire
+                    if (fire !== NO_FIRE) {
+                        ctx.fillStyle = fireColors[fire];
+                        
+                        if (fire === LOW_FIRE) {
+                            ctx.globalAlpha = 0.7;
+                        } else if (fire === MEDIUM_FIRE) {
+                            ctx.globalAlpha = 0.85;
+                        } else {
+                            ctx.globalAlpha = 1;
+                        }
+                        
+                        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        ctx.globalAlpha = 1;
+                        
+                        // Add fire effect
+                        if (fire === HIGH_FIRE) {
+                            const time = Date.now() / 100;
+                            const flicker = Math.sin(time + x + y) * 0.3 + 0.7;
+                            
+                            ctx.fillStyle = `rgba(255, 255, 0, ${flicker})`;
+                            ctx.beginPath();
+                            ctx.arc(
+                                x * CELL_SIZE + CELL_SIZE/2, 
+                                y * CELL_SIZE + CELL_SIZE/2, 
+                                CELL_SIZE/3, 
+                                0, 
+                                Math.PI * 2
+                            );
+                            ctx.fill();
+                        }
+                    }
+                    
+                    // Draw grid lines (subtle)
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+            }
+        }
+        
+        // Update fire simulation
+        function updateFire() {
+            const newFireGrid = fireGrid.map(row => [...row]);
+            let activeFires = 0;
+            
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    const terrain = grid[y][x];
+                    const fire = fireGrid[y][x];
+                    
+                    if (fire !== NO_FIRE && fire !== BURNT) {
+                        activeFires++;
+                        
+                        // Fire burns out over time
+                        if (Math.random() < 0.05) {
+                            newFireGrid[y][x] = BURNT;
+                            burntCells++;
+                            continue;
+                        }
+                        
+                        // Fire spreads based on terrain and wind
+                        const windVector = windVectors[windDirection];
+                        const spreadChance = getSpreadChance(terrain, fire);
+                        
+                        // Check all 8 directions
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                
+                                if (nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) {
+                                    const neighborTerrain = grid[ny][nx];
+                                    const neighborFire = fireGrid[ny][nx];
+                                    
+                                    if (neighborFire === NO_FIRE && neighborTerrain !== WATER) {
+                                        // Calculate wind effect
+                                        const windEffect = getWindEffect(dx, dy, windVector);
+                                        const finalChance = spreadChance * windEffect * (windSpeed / 5);
+                                        
+                                        if (Math.random() < finalChance) {
+                                            // Determine fire intensity based on terrain
+                                            let newFireIntensity = LOW_FIRE;
+                                            if (neighborTerrain === FOREST) newFireIntensity = MEDIUM_FIRE;
+                                            if (neighborTerrain === URBAN) newFireIntensity = HIGH_FIRE;
+                                            
+                                            newFireGrid[ny][nx] = newFireIntensity;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            fireGrid = newFireGrid;
+            updateStats(activeFires);
+        }
+        
+        // Get fire spread chance based on terrain
+        function getSpreadChance(terrain, fireIntensity) {
+            let baseChance = 0;
+            
+            switch (terrain) {
+                case GRASS:
+                    baseChance = 0.3;
+                    break;
+                case FOREST:
+                    baseChance = 0.5;
+                    break;
+                case URBAN:
+                    baseChance = 0.7;
+                    break;
+                case SOIL:
+                    baseChance = 0.1;
+                    break;
+                default:
+                    baseChance = 0;
+            }
+            
+            // Adjust based on fire intensity
+            if (fireIntensity === MEDIUM_FIRE) baseChance *= 1.5;
+            if (fireIntensity === HIGH_FIRE) baseChance *= 2;
+            
+            return baseChance;
+        }
+        
+        // Get wind effect on fire spread
+        function getWindEffect(dx, dy, windVector) {
+            const dotProduct = dx * windVector.x + dy * windVector.y;
+            const magnitude = Math.sqrt(dx*dx + dy*dy) * Math.sqrt(windVector.x*windVector.x + windVector.y*windVector.y);
+            const cosAngle = dotProduct / magnitude;
+            
+            // Wind effect is strongest in wind direction
+            return Math.max(0.1, cosAngle + 1);
+        }
+        
+        // Handle mouse click
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+            
+            if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
+                const terrain = grid[y][x];
+                
+                if (firefightingMode) {
+                    // Extinguish fire
+                    if (fireGrid[y][x] !== NO_FIRE && fireGrid[y][x] !== BURNT) {
+                        fireGrid[y][x] = NO_FIRE;
+                    }
+                } else {
+                    // Start fire
+                    if (terrain !== WATER && fireGrid[y][x] === NO_FIRE) {
+                        let fireIntensity = LOW_FIRE;
+                        if (terrain === FOREST) fireIntensity = MEDIUM_FIRE;
+                        if (terrain === URBAN) fireIntensity = HIGH_FIRE;
+                        
+                        fireGrid[y][x] = fireIntensity;
+                    }
+                }
+            }
+        });
+        
+        // Control functions
+        function setWindDirection(direction) {
+            windDirection = direction;
+            document.getElementById('windIndicator').textContent = windSymbols[direction];
+        }
+        
+        function updateWindSpeed() {
+            windSpeed = parseInt(document.getElementById('windSpeed').value);
+            document.getElementById('windSpeedValue').textContent = windSpeed;
+        }
+        
+        function startRandomFire() {
+            for (let i = 0; i < 5; i++) {
+                const x = Math.floor(Math.random() * GRID_WIDTH);
+                const y = Math.floor(Math.random() * GRID_HEIGHT);
+                const terrain = grid[y][x];
+                
+                if (terrain !== WATER && fireGrid[y][x] === NO_FIRE) {
+                    let fireIntensity = LOW_FIRE;
+                    if (terrain === FOREST) fireIntensity = MEDIUM_FIRE;
+                    if (terrain === URBAN) fireIntensity = HIGH_FIRE;
+                    
+                    fireGrid[y][x] = fireIntensity;
+                }
+            }
+        }
+        
+        function toggleFirefighting() {
+            firefightingMode = !firefightingMode;
+            canvas.style.cursor = firefightingMode ? 'pointer' : 'crosshair';
+        }
+        
+        function resetSimulation() {
+            initSimulation();
+        }
+        
+        function updateStats(activeFires = 0) {
+            const burntPercentage = totalCells > 0 ? Math.round((burntCells / totalCells) * 100) : 0;
+            document.getElementById('burntArea').textContent = burntPercentage + '%';
+            document.getElementById('activeFires').textContent = activeFires;
+            
+            // Calculate fire speed
+            let fireSpeed = 'Low';
+            if (windSpeed > 5) fireSpeed = 'High';
+            else if (windSpeed > 3) fireSpeed = 'Medium';
+            document.getElementById('fireSpeed').textContent = fireSpeed;
+            
+            // Calculate damage level
+            let damageLevel = 'None';
+            if (burntPercentage > 50) damageLevel = 'Catastrophic';
+            else if (burntPercentage > 30) damageLevel = 'Severe';
+            else if (burntPercentage > 10) damageLevel = 'Moderate';
+            else if (burntPercentage > 0) damageLevel = 'Minor';
+            document.getElementById('damageLevel').textContent = damageLevel;
+        }
+        
+        // Game loop
+        function gameLoop() {
+            drawGrid();
+            updateFire();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize and start
+        initSimulation();
+        setWindDirection('E');
+        gameLoop();
+    </script>
+</body>
+</html>
+
+
+
+
+
